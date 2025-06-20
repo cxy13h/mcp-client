@@ -98,8 +98,6 @@ async def main():
         await client.list_tools()
         prompt = Util.get_final_prompt(client.tools)
         llm_client = OpenAI(api_key="sk-6996164597154fc7ad1ca0a5c6544e89", base_url="https://api.deepseek.com/v1")
-        state_file = open("state.txt", "w", encoding="utf-8")
-        content_file = open("content.txt", "w", encoding="utf-8")
         response = llm_client.chat.completions.create(
             model="deepseek-reasoner",
             messages=[{"role":"user", "content":prompt}],
@@ -109,22 +107,18 @@ async def main():
         for event_type, key, content in Util.parse_json_stream_by_chunks(Util.parse_llm_stream(response)):
             if event_type == "key_complete":
                 print(f"\n[{key}]: ", end="", flush=True)
-                if(key=="state"):
-                    last_state=content
-            
             elif event_type == "value_chunk":
                 # 输出整个chunk，而不是单个字符
                 print(content, end="", flush=True)
             
             elif event_type == "value_complete":
+                ## 记录此次对话的最后一次state，以便后续代码迭代
+                if key == "state":
+                    last_state = content
                 print()  # 换行
-        print(f"\n最后的状态是{last_state}")
     except Exception as e:
         print(f"程序运行出现严重错误: {e}")
     finally:
-        state_file.close()
-        content_file.close()
-        # --- 确保最后断开连接 ---
         await client.disconnect()
 
 
