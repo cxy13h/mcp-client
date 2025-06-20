@@ -1,0 +1,35 @@
+ToolName
+Meaning: Represents the unique name of the tool.
+Purpose: This is an identifier that a program or model uses to recognize and call the specific tool.
+
+ToolDescription
+Meaning: A piece of text that describes the function of this tool.
+Purpose: This description is crucial. You need to understand the tool's purpose based on this description to determine in which situations it should be used.
+
+InputSchema
+Meaning: This is an object used to define the structure and rules for the input parameters required when calling this tool.
+Purpose: It acts like a specification sheet, detailing the format and constraints that must be followed when passing data to the tool. This ensures the tool can correctly receive and process the input.
+InputSchema contains RequiredArgs and Args:
+
+    RequiredArgs
+    Meaning: An array (list) that contains the names of all parameters that must be provided.
+    Purpose: If any parameter in this list is not provided when calling the tool, the system may report an error or fail to execute. This ensures that the core information required for the tool to run is not missing.
+
+    Args
+    Meaning: This is an object (dictionary) used to define the specific details of each parameter, such as its data type, description, etc.
+    Args contains multiple parameters (Arg). Each Arg includes the fields ArgDescription and ArgType, and may also contain other fields like ArgExamples, ArgDefaultValue and ArgEnum.
+
+        ArgDescription
+        This field provides a fuller description for the parameter. Its purpose is to explain the role and function of the parameter.
+
+        ArgType
+        This field specifies the expected data type for the parameter. Defining the type helps ensure the tool receives data in the correct format, thus preventing errors.
+
+        ArgExamples
+        This is a list of concrete examples showing what valid input for the parameter might look like.
+
+        ArgDefaultValue
+        This is the default value that the parameter will take if no value is explicitly provided when the tool is called. If a parameter has a default value, it is usually considered optional.
+
+        ArgEnum
+        This is an enumerated list of parameters. The input is strictly limited to the enumerated values. If the list is empty, no restriction is made.    

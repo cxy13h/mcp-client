@@ -1,0 +1,11 @@
+## 可用的工具列表
+
+{tool_name_list}
+
+## 每个工具的具体描述
+
+{tools}
+
+## 工具参数的额外描述
+
+{additional_description}
