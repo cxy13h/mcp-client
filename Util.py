@@ -480,3 +480,24 @@ def parse_llm_stream(response):
             yield chunk.choices[0].delta.content
 
 
+def invoke(prompt: str) -> tuple[str, str, str]:
+    llm_client = OpenAI(api_key="sk-6996164597154fc7ad1ca0a5c6544e89", base_url="https://api.deepseek.com/v1")
+    response = llm_client.chat.completions.create(
+        model="deepseek-reasoner",
+        messages=[{"role": "user", "content": prompt}],
+        stream=True
+    )
+    for event_type, key, content in parse_json_stream_by_chunks(parse_llm_stream(response)):
+        if event_type == "key_complete":
+            print(f"\n[{key}]: ", end="", flush=True)
+        elif event_type == "value_chunk":
+            # 输出整个chunk，而不是单个字符
+            print(content, end="", flush=True)
+        elif event_type == "value_complete":
+            if key == "state":
+                last_state = content
+            elif key == "content":
+                last_content = content
+                prompt += f"\n{{\"state\": {last_state}, \"content\":{last_content}}}"
+            print()  # 换行
+    return last_state, last_content, prompt

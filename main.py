@@ -97,25 +97,22 @@ async def main():
         # --- 列出工具 ---
         await client.list_tools()
         prompt = Util.get_final_prompt(client.tools)
-        llm_client = OpenAI(api_key="sk-6996164597154fc7ad1ca0a5c6544e89", base_url="https://api.deepseek.com/v1")
-        response = llm_client.chat.completions.create(
-            model="deepseek-reasoner",
-            messages=[{"role":"user", "content":prompt}],
-            stream=True
-        )
-        last_state=''
-        for event_type, key, content in Util.parse_json_stream_by_chunks(Util.parse_llm_stream(response)):
-            if event_type == "key_complete":
-                print(f"\n[{key}]: ", end="", flush=True)
-            elif event_type == "value_chunk":
-                # 输出整个chunk，而不是单个字符
-                print(content, end="", flush=True)
-            
-            elif event_type == "value_complete":
-                ## 记录此次对话的最后一次state，以便后续代码迭代
-                if key == "state":
-                    last_state = content
-                print()  # 换行
+        last_state, last_content, prompt = Util.invoke(prompt)
+        print("prompt内容：\n" + prompt)
+        print("last_state: " + last_state + " last_content: " + last_content)
+        while last_state!= '"Final Answer"':
+            if last_state == '"User Interaction Needed"':
+                print("需要用户交互")
+                user_input = input("请输入: ")
+                prompt += f"\n{{\"state\": \"User Input\", \"content\":{user_input}}}"
+                print("现在的prompt内容：\n" + prompt)
+            elif last_state == '"Action Input"':
+                print("需要执行工具")
+                last_content_json = json.loads(last_content)
+                observation = await client.call_tool(last_content_json["tool_name"], last_content_json["arguments"])
+                prompt += f"\n{{\"state\": \"Observation\", \"content\":{observation}}}"
+                print("现在的prompt内容：\n" + prompt)
+            last_state, last_content, prompt = Util.invoke(prompt)
     except Exception as e:
         print(f"程序运行出现严重错误: {e}")
     finally:
