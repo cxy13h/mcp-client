@@ -131,15 +131,13 @@ def parse_json_stream_by_chunks(stream):
     current_value = ""
     reading_key = False
     reading_value = False
-    last_yielded_pos = 0  # 记录上次yield的位置
     
     for chunk in stream:
         buffer += chunk
         i = 0
         
-        # 记录这个chunk在值中的起始位置
+        # 记录这个chunk中值的起始位置
         value_chunk_start = -1
-        value_chunk_content = ""
         
         while i < len(buffer):
             c = buffer[i]
@@ -191,18 +189,23 @@ def parse_json_stream_by_chunks(stream):
                             value_chunk_start = len(current_value) - 1
                         
                 elif c == '}':
-                    if depth > 1 and reading_value:
-                        current_value += c
                     depth -= 1
-                    if depth == 0 and reading_value:
-                        # 值结束，输出最后的chunk
-                        if value_chunk_start != -1:
-                            chunk_content = current_value[value_chunk_start:]
-                            if chunk_content:
-                                yield ("value_chunk", current_key, chunk_content)
-                        yield ("value_complete", current_key, current_value)
-                        reading_value = False
-                        current_value = ""
+                    if depth > 0 and reading_value:
+                        # 内层的 } 要加入值
+                        current_value += c
+                        if value_chunk_start == -1:
+                            value_chunk_start = len(current_value) - 1
+                    elif depth == 0:
+                        # 最外层的 } 表示整个JSON结束
+                        if reading_value:
+                            # 值结束，输出最后的chunk
+                            if value_chunk_start != -1:
+                                chunk_content = current_value[value_chunk_start:]
+                                if chunk_content:
+                                    yield ("value_chunk", current_key, chunk_content)
+                            yield ("value_complete", current_key, current_value)
+                            reading_value = False
+                            current_value = ""
                         
                 elif c == ':' and depth == 1:
                     reading_value = True
@@ -477,8 +480,9 @@ def parse_llm_stream(response):
     """将LLM响应转换为字符流"""
     for chunk in response:
         if chunk.choices and chunk.choices[0].delta.content:
-            yield chunk.choices[0].delta.content
-
+            content = chunk.choices[0].delta.content
+            # print(f"\033[90m{content}\033[0m", end="", flush=True)
+            yield content
 
 def invoke(prompt: str) -> tuple[str, str, str]:
     llm_client = OpenAI(api_key="sk-6996164597154fc7ad1ca0a5c6544e89", base_url="https://api.deepseek.com/v1")
