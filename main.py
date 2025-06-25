@@ -80,7 +80,7 @@ class MCPClient:
         try:
             response = await self.session.call_tool(tool_name, arguments)
             print(f"✅ 工具调用成功!")
-            print(f"   响应: {response}")
+            print(f"   响应: {response.content[0].text}")
             return response
         except Exception as e:
             print(f"❌ 工具调用失败: {e}")
@@ -98,20 +98,19 @@ async def main():
         await client.list_tools()
         prompt = Util.get_final_prompt(client.tools)
         last_state, last_content, prompt = Util.invoke(prompt)
-        print("prompt内容：\n" + prompt)
         print("last_state: " + last_state + " last_content: " + last_content)
         while last_state!= '"Final Answer"':
             if last_state == '"User Interaction Needed"':
                 print("需要用户交互")
                 user_input = input("请输入: ")
                 prompt += f"\n{{\"state\": \"User Input\", \"content\":{user_input}}}"
-                print("现在的prompt内容：\n" + prompt)
+                # print("现在的prompt内容：\n" + prompt)
             elif last_state == '"Action Input"':
                 print("需要执行工具")
                 last_content_json = json.loads(last_content)
                 observation = await client.call_tool(last_content_json["tool_name"], last_content_json["arguments"])
                 prompt += f"\n{{\"state\": \"Observation\", \"content\":{observation}}}"
-                print("现在的prompt内容：\n" + prompt)
+                # print("现在的prompt内容：\n" + prompt)
             last_state, last_content, prompt = Util.invoke(prompt)
     except Exception as e:
         print(f"程序运行出现严重错误: {e}")

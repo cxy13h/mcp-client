@@ -106,7 +106,7 @@ def get_final_prompt(all_tools: list):
 
     final_prompt = llmPromptTemplate.format(
         tools=tool_prompt,
-        agent_scratchpad='''{"state": "User Input", "content":"帮我连接到数据库"}'''
+        agent_scratchpad='''{"state": "User Input", "content":"我要查看当前数据库各个表的格式，并且为它们添加一些样本数据"}'''
     )
     return final_prompt
 
