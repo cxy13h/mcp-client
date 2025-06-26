@@ -1,7 +1,6 @@
 import json
 from openai import OpenAI
 from typing import Generator, Dict, Any, Optional
-from streaming_parser import StreamingJSONParser
 def format_tool(tool_json: dict) -> dict:
     """
     将工具的原始JSON模式描述转换为一个结构化的字典对象。

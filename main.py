@@ -6,7 +6,6 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.types import Tool
 from openai import OpenAI
-import improved_streaming_parser
 import Util
 
 
