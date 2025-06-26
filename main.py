@@ -76,14 +76,14 @@ class MCPClient:
             return None
 
         print(f"\n🔧 正在调用工具 '{tool_name}'...")
-        print(f"   参数: {arguments}")
+        print(f"   参数:\n  {arguments}")
         try:
             response = await self.session.call_tool(tool_name, arguments)
             print(f"✅ 工具调用成功!")
-            print(f"   响应: {response.content[0].text}")
-            return response
+            print(f"   调用结果:\n  {response.content[0].text}")
+            return response.content[0].text
         except Exception as e:
-            print(f"❌ 工具调用失败: {e}")
+            print(f"❌ 工具调用失败:\n {e}")
             return None
 
 
@@ -99,7 +99,7 @@ async def main():
         prompt = Util.get_final_prompt(client.tools)
         last_state, last_content, prompt = Util.invoke(prompt)
         print("last_state: " + last_state + " last_content: " + last_content)
-        while last_state!= '"Final Answer"':
+        while last_state != '"Final Answer"':
             if last_state == '"User Interaction Needed"':
                 print("需要用户交互")
                 user_input = input("请输入: ")
@@ -113,7 +113,7 @@ async def main():
                 # print("现在的prompt内容：\n" + prompt)
             last_state, last_content, prompt = Util.invoke(prompt)
     except Exception as e:
-        print(f"程序运行出现严重错误: {e}")
+        print(f"程序运行出现严重错误:\n  {e}")
     finally:
         await client.disconnect()
 

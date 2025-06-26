@@ -264,9 +264,9 @@ def parse_llm_stream(response):
             yield content
 
 def invoke(prompt: str) -> tuple[str, str, str]:
-    llm_client = OpenAI(api_key="sk-6996164597154fc7ad1ca0a5c6544e89", base_url="https://api.deepseek.com/v1")
+    llm_client = OpenAI(api_key="sk-1uKqG1fndfUGDjx15480AdF4D79140B3819dAeF8B0Bc6c6e", base_url="https://api.laozhang.ai/v1")
     response = llm_client.chat.completions.create(
-        model="deepseek-reasoner",
+        model="gemini-2.5-flash",
         messages=[{"role": "user", "content": prompt}],
         stream=True
     )
