@@ -263,7 +263,13 @@ def parse_llm_stream(response):
             yield content
 
 def invoke(prompt: str) -> tuple[str, str, str]:
-    llm_client = OpenAI(api_key="sk-1uKqG1fndfUGDjx15480AdF4D79140B3819dAeF8B0Bc6c6e", base_url="https://api.laozhang.ai/v1")
+    llm_client = OpenAI(
+        api_key="AIzaSyCvJwFk7igZTb7lU3MUCbGKufWGPgKP2p0",
+        base_url="https://cxy13h.xyz/v1beta/openai/",
+        default_headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+)
     response = llm_client.chat.completions.create(
         model="gemini-2.5-flash",
         messages=[{"role": "user", "content": prompt}],

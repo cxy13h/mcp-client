@@ -19,8 +19,8 @@
 - **ThinkOutput**：思考工具的输出
 - **Thought**：基于思考结果的常规思考
 - **Action**：将要执行某个工具
-- **Action Input**：工具的输入参数
-- **User Interaction Needed**：需要用户的反馈
+- **Action Input**：工具的输入参数(这一状态结束后立刻终止任何输出!!!)
+- **User Interaction Needed**：需要用户的反馈(这一状态结束后立刻终止任何输出!!!)
 - **Observation**：动作执行的结果
 - **Final Answer**：最终答案
 - 这些状态可以互相连续触发: ThinkTool/Thought/Action/Action Input/User Interaction Needed/Observation
