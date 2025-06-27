@@ -1,14 +1,3 @@
-import asyncio
-import json
-from typing import Optional, List, Dict, Any
-from contextlib import AsyncExitStack
-from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
-from mcp.types import Tool
-from openai import OpenAI
-import Util
-
-
 class MCPClient:
     def __init__(self):
         # 初始化会话和客户端对象
@@ -84,34 +73,3 @@ class MCPClient:
         except Exception as e:
             print(f"❌ 工具调用失败:\n {e}")
             return None
-
-
-async def main():
-    client = MCPClient()
-    try:
-        # --- 连接服务器 ---
-        await client.connect("http://101.126.145.194:8000/mcp/")
-
-        # --- 列出工具/并将工具填充到client.tools中 ---
-        await client.list_tools()
-        prompt = Util.get_final_prompt(client.tools)
-        last_state, last_content, prompt = Util.invoke(prompt)
-        while last_state != '"Final Answer"':
-            if last_state == '"User Interaction Needed"':
-                print("需要用户交互")
-                user_input = input("请输入: ")
-                prompt += f"\n{{\"state\": \"User Input\", \"content\":{user_input}}}"
-            elif last_state == '"Action Input"':
-                print("需要执行工具")
-                last_content_json = json.loads(last_content)
-                observation = await client.call_tool(last_content_json["tool_name"], last_content_json["arguments"])
-                prompt += f"\n{{\"state\": \"Observation\", \"content\":{observation}}}"
-            last_state, last_content, prompt = Util.invoke(prompt)
-    except Exception as e:
-        print(f"程序运行出现严重错误:\n  {e}")
-    finally:
-        await client.disconnect()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
