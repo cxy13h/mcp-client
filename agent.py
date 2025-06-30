@@ -1,8 +1,12 @@
 import asyncio
 import json
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Generator
 from dotenv import load_dotenv
+
+import Util
+from llm import LLMClient
+from mcp import MCPClient
 
 load_dotenv()
 
@@ -11,60 +15,154 @@ class MCPAgent:
     """MCP智能代理封装类"""
     
     def __init__(self):
-        self.client = MCPClient()
+        self.mcp_client = MCPClient()
+        self.llm_client = LLMClient()
         self.server_url = os.getenv("MCP_SERVER_URL")
-        self.state_handlers = {
-            '"User Interaction Needed"': self._handle_user_interaction,
-            '"Action Input"': self._handle_action_input,
-            '"Final Answer"': self._handle_final_answer
-        }
-    
-    async def run(self) -> Optional[str]:
-        """运行智能代理主循环"""
-        try:
-            await self.client.connect(self.server_url)
-            await self.client.list_tools()
-            
-            prompt = Util.get_final_prompt(self.client.tools)
-            state, content, prompt = Util.invoke(prompt)
-            
-            while state != '"Final Answer"':
-                handler = self.state_handlers.get(state)
-                if handler:
-                    prompt = await handler(content, prompt)
-                else:
-                    raise ValueError(f"未知状态: {state}")
-                
-                state, content, prompt = Util.invoke(prompt)
-            
-            return content
-            
-        except Exception as e:
-            print(f"程序运行出现严重错误:\n  {e}")
-            return None
-        finally:
-            await self.client.disconnect()
-    
-    async def _handle_user_interaction(self, content: str, prompt: str) -> str:
-        """处理用户交互"""
-        print("需要用户交互")
-        user_input = input("请输入: ")
-        return prompt + f'\n{{"state": "User Input", "content":"{user_input}"}}'
-    
-    async def _handle_action_input(self, content: str, prompt: str) -> str:
-        """处理工具执行"""
-        print("需要执行工具")
-        params = json.loads(content)
-        observation = await self.client.call_tool(
-            params["tool_name"], 
-            params["arguments"]
-        )
-        return prompt + f'\n{{"state": "Observation", "content":{json.dumps(observation)}}}'
-    
-    async def _handle_final_answer(self, content: str, prompt: str) -> str:
-        """处理最终答案"""
-        return prompt
+        self.initial_prompt=""
+        self.session_map = {}
 
+    async def init_connection(self):
+        """初始化MCP客户端连接"""
+        try:
+            await self.mcp_client.connect(self.server_url)
+            await self.mcp_client.init_tools()
+            self.initial_prompt = Util.get_final_prompt(self.mcp_client.tools)
+        except Exception as e:
+            print(f"❌ MCP客户端连接初始化失败: {e}")
+
+    def get_session_prompt(self, sessionId: str) -> str:
+        if sessionId not in self.session_map:
+            self.session_map[sessionId] = self.initial_prompt
+
+        return self.session_map[sessionId]
+
+    # ===== 单次invoke的流式版本 =====
+    def invoke_stream(self, prompt: str) -> Generator[Dict[str, Any], None, None]:
+        """
+        流式版本的invoke函数
+
+        Yields:
+            流式事件，最后通过invoke_result事件返回完整结果
+        """
+        response = self.llm_client.invoke(prompt)
+
+        last_state = None
+        last_content = None
+
+        for event_type, key, content in Util.parse_json_stream_by_chunks(Util.parse_llm_stream(response)):
+            if event_type == "key_complete":
+                yield {
+                    "type": "key_complete",
+                    "key": key
+                }
+            elif event_type == "value_chunk":
+                yield {
+                    "type": "value_chunk",
+                    "key": key,
+                    "content": content
+                }
+            elif event_type == "value_complete":
+                if key == "state":
+                    last_state = content
+                elif key == "content":
+                    last_content = content
+                    prompt += f"\n{{\"state\": {last_state}, \"content\":{last_content}}}"
+
+                yield {
+                    "type": "value_complete",
+                    "key": key,
+                    "value": content
+                }
+
+        # 返回invoke结果
+        yield {
+            "type": "invoke_result",
+            "state": last_state,
+            "content": last_content,
+            "prompt": prompt
+        }
+
+    # ===== 处理单次请求的函数 =====
+    async def handle_request(self, session_id: str, user_input: Optional[str] = None, client=None) -> Generator[
+        Dict[str, Any], None, None]:
+        """
+        处理单次请求，执行循环直到需要用户输入或对话结束
+
+        Args:
+            session_id: 会话ID
+            user_input: 用户输入
+            client: 工具调用客户端
+
+        Yields:
+            流式事件
+        """
+        # 获取或初始化prompt
+        prompt = self.get_session_prompt(session_id)
+
+        # 如果有用户输入，追加到prompt
+        if user_input is not None:
+            prompt += f'\n{{"state": "User Input", "content":"{user_input}"}}'
+
+        # 循环执行invoke，直到需要用户输入或对话结束
+        while True:
+            last_state = None
+            last_content = None
+
+            # 执行一次invoke
+            for event in self.invoke_stream(prompt):
+                yield event
+
+                if event["type"] == "invoke_result":
+                    last_state = event["state"]
+                    last_content = event["content"]
+                    prompt = event["prompt"]
+
+            # 更新session中的prompt
+            self.session_map[session_id] = prompt
+
+            # 检查是否需要结束循环
+            if last_state == '"Final Answer"':
+                # 对话完成，结束循环
+                yield {
+                    "type": "conversation_complete",
+                    "final_answer": last_content
+                }
+                break
+
+            if last_state == '"User Interaction Needed"':
+                # 需要用户输入，结束循环，等待下一次请求
+                yield {
+                    "type": "waiting_for_user",
+                    "message": "需要用户交互"
+                }
+                break
+
+            # 如果是Action Input，执行工具后继续循环
+            if last_state == '"Action Input"':
+                try:
+                    last_content_json = json.loads(last_content)
+                    tool_name = last_content_json["tool_name"]
+                    arguments = last_content_json["arguments"]
+
+                    # 执行工具
+                    if self.mcp_client:
+                        last_content_json = json.loads(last_content)
+                        observation = await self.mcp_client.call_tool(last_content_json["tool_name"],last_content_json["arguments"])
+                        prompt += f"\n{{\"state\": \"Observation\", \"content\":{observation}}}"
+                        self.session_map[session_id] = prompt
+
+                        yield {
+                            "type": "tool_executed",
+                            "tool_name": tool_name,
+                            "observation": observation
+                        }
+                        # 继续循环，执行下一次invoke
+                except Exception as e:
+                    yield {
+                        "type": "error",
+                        "error": str(e)
+                    }
+                    break
 
 # 简化的运行方式
 async def main():

@@ -1,3 +1,11 @@
+from contextlib import AsyncExitStack
+from typing import Optional, List, Any, Dict
+from mcp.types import Tool
+from mcp.client.streamable_http import streamablehttp_client
+import Util
+from mcp import ClientSession
+
+
 class MCPClient:
     def __init__(self):
         # 初始化会话和客户端对象
@@ -6,9 +14,6 @@ class MCPClient:
         self.tools = []
 
     async def connect(self, server_url: str):
-        """
-        连接到 MCP 服务器并初始化会शन
-        """
         print(f"🔗 正在连接到服务器: {server_url}")
         try:
             # --- 关键修改：解包返回的读写流 ---
@@ -31,9 +36,6 @@ class MCPClient:
             raise
 
     async def disconnect(self):
-        """
-        干净地断开连接并关闭所有资源
-        """
         if self.session:
             print("🔌 正在断开连接...")
             await self.exit_stack.aclose()
@@ -41,24 +43,15 @@ class MCPClient:
             print("🔌 连接已断开。")
 
     async def list_tools(self) -> List[Tool]:
-        """
-        列出所有可用的工具
-        """
         if not self.session:
             print("❌尚未连接到服务器。")
             return []
 
         response = await self.session.list_tools()
         tools = response.tools
-        for tool in tools:
-            toolDescription = Util.format_tool(tool.__dict__)
-            self.tools.append(toolDescription)
         return tools
 
     async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
-        """
-        调用指定的工具
-        """
         if not self.session:
             print("❌ 尚未连接到服务器。")
             return None
@@ -73,3 +66,13 @@ class MCPClient:
         except Exception as e:
             print(f"❌ 工具调用失败:\n {e}")
             return None
+
+    async def init_tools(self):
+        if not self.session:
+            print("❌尚未连接到服务器。")
+            return []
+        self.tools=[]
+        response = await self.session.list_tools()
+        tools = response.tools
+        for tool in tools:
+            self.tools.append(Util.format_tool(tool.__dict__))
