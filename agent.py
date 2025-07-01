@@ -72,16 +72,8 @@ class MCPAgent:
                 yield {
                     "type": "value_complete",
                     "key": key,
-                    "value": content
+                    "content": content
                 }
-
-        # 返回invoke结果
-        yield {
-            "type": "invoke_result",
-            "state": last_state,
-            "content": last_content,
-            "prompt": prompt
-        }
 
     # ===== 处理单次请求的函数 =====
     async def handle_request(self, session_id: str, user_input: Optional[str] = None, client=None) -> Generator[
@@ -111,32 +103,21 @@ class MCPAgent:
 
             # 执行一次invoke
             for event in self.invoke_stream(session_id, self.session_map[session_id]):
-                yield event
-
-                if event["type"] == "invoke_result":
-                    last_state = event["state"]
-                    last_content = event["content"]
-                    prompt = event["prompt"]
-                    print("该轮最终的提示词为：-----------------------\n"+prompt)
-
-            # 更新session中的prompt
-            self.session_map[session_id] = prompt
+                if event["type"] == "value_complete":
+                    if event["key"] == "state":
+                        last_state = event["content"]
+                    if event["key"] == "content":
+                        last_content = event["content"]
+                else:
+                    yield event
 
             # 检查是否需要结束循环
             if last_state == '"Final Answer"':
                 # 对话完成，结束循环
-                yield {
-                    "type": "conversation_complete",
-                    "final_answer": last_content
-                }
                 break
 
             if last_state == '"User Interaction Needed"':
                 # 需要用户输入，结束循环，等待下一次请求
-                yield {
-                    "type": "waiting_for_user",
-                    "message": "需要用户交互"
-                }
                 break
 
             # 如果是Action Input，执行工具后继续循环
@@ -166,19 +147,19 @@ class MCPAgent:
                     }
                     break
 
-# 简化的运行方式
-async def main():
-    agent = MCPAgent()
-    try:
-        await agent.init_connection()
-        # 使用 async for 迭代异步生成器
-        async for event in agent.handle_request("11111", "我需要你的帮助"):
-            pass
-    finally:
-        # 确保在程序结束前断开连接
-        if agent.mcp_client and agent.mcp_client.session:
-            await agent.mcp_client.disconnect()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# # 简化的运行方式
+# async def main():
+#     agent = MCPAgent()
+#     try:
+#         await agent.init_connection()
+#         # 使用 async for 迭代异步生成器
+#         async for event in agent.handle_request("11111", "帮助我查询下数据库吧"):
+#             print(event)
+#     finally:
+#         # 确保在程序结束前断开连接
+#         if agent.mcp_client and agent.mcp_client.session:
+#             await agent.mcp_client.disconnect()
+#
+#
+# if __name__ == "__main__":
+#     asyncio.run(main())
