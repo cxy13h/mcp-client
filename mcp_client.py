@@ -61,10 +61,10 @@ class MCPClient:
         try:
             response = await self.session.call_tool(tool_name, arguments)
             print(f"✅ 工具调用成功!")
-            print(f"   调用结果:\n  {response.content[0].text}")
+            print(f"   调用结果:\n  {response.content[0].text}   \n -----------------\n")
             return response.content[0].text
         except Exception as e:
-            print(f"❌ 工具调用失败:\n {e}")
+            print(f"❌ 工具调用失败:\n {e}  \n -----------------\n")
             return None
 
     async def init_tools(self):

@@ -262,30 +262,3 @@ def parse_llm_stream(response):
             # print(f"\033[90m{content}\033[0m", end="", flush=True)
             yield content
 
-def invoke(prompt: str) -> tuple[str, str, str]:
-    llm_client = OpenAI(
-        api_key="AIzaSyCvJwFk7igZTb7lU3MUCbGKufWGPgKP2p0",
-        base_url="https://cxy13h.xyz/v1beta/openai/",
-        default_headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
-)
-    response = llm_client.chat.completions.create(
-        model="gemini-2.5-flash",
-        messages=[{"role": "user", "content": prompt}],
-        stream=True
-    )
-    for event_type, key, content in parse_json_stream_by_chunks(parse_llm_stream(response)):
-        if event_type == "key_complete":
-            print(f"\n[{key}]: ", end="", flush=True)
-        elif event_type == "value_chunk":
-            # 输出整个chunk，而不是单个字符
-            print(content, end="", flush=True)
-        elif event_type == "value_complete":
-            if key == "state":
-                last_state = content
-            elif key == "content":
-                last_content = content
-                prompt += f"\n{{\"state\": {last_state}, \"content\":{last_content}}}"
-            print()  # 换行
-    return last_state, last_content, prompt

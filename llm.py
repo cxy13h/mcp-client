@@ -35,14 +35,3 @@ class LLMClient:
             stream=stream
         )
 
-
-# # 使用示例
-# if __name__ == "__main__":
-#     # 创建客户端实例
-#     llm = LLMClient()
-    
-#     # 流式调用
-#     response_stream = llm.invoke("你好，请介绍一下自己")
-#     for chunk in response_stream:
-#         if chunk.choices[0].delta.content:
-#             print(chunk.choices[0].delta.content, end="")
