@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 import Util
 from llm import LLMClient
-from mcp import MCPClient
+from mcp_client import MCPClient
 
 load_dotenv()
 
@@ -37,7 +37,7 @@ class MCPAgent:
         return self.session_map[sessionId]
 
     # ===== 单次invoke的流式版本 =====
-    def invoke_stream(self, prompt: str) -> Generator[Dict[str, Any], None, None]:
+    def invoke_stream(self, sessionId: str, prompt: str) -> Generator[Dict[str, Any], None, None]:
         """
         流式版本的invoke函数
 
@@ -67,6 +67,7 @@ class MCPAgent:
                 elif key == "content":
                     last_content = content
                     prompt += f"\n{{\"state\": {last_state}, \"content\":{last_content}}}"
+                    self.session_map[sessionId] = prompt
 
                 yield {
                     "type": "value_complete",
@@ -102,20 +103,21 @@ class MCPAgent:
         # 如果有用户输入，追加到prompt
         if user_input is not None:
             prompt += f'\n{{"state": "User Input", "content":"{user_input}"}}'
-
+        self.session_map[session_id] = prompt
         # 循环执行invoke，直到需要用户输入或对话结束
         while True:
             last_state = None
             last_content = None
 
             # 执行一次invoke
-            for event in self.invoke_stream(prompt):
+            for event in self.invoke_stream(session_id, self.session_map[session_id]):
                 yield event
 
                 if event["type"] == "invoke_result":
                     last_state = event["state"]
                     last_content = event["content"]
                     prompt = event["prompt"]
+                    print("该轮最终的提示词为：-----------------------\n"+prompt)
 
             # 更新session中的prompt
             self.session_map[session_id] = prompt
@@ -167,9 +169,15 @@ class MCPAgent:
 # 简化的运行方式
 async def main():
     agent = MCPAgent()
-    result = await agent.run()
-    if result:
-        print(f"最终结果: {result}")
+    try:
+        await agent.init_connection()
+        # 使用 async for 迭代异步生成器
+        async for event in agent.handle_request("11111", "我需要你的帮助"):
+            pass
+    finally:
+        # 确保在程序结束前断开连接
+        if agent.mcp_client and agent.mcp_client.session:
+            await agent.mcp_client.disconnect()
 
 
 if __name__ == "__main__":
