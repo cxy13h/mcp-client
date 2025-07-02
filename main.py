@@ -24,10 +24,10 @@ async def chat():
 
     async def generate():
         async for event in agent.handle_request(session_id, message):
-            yield json.dumps(event, ensure_ascii=False)
+            yield f"{json.dumps(event, ensure_ascii=False)}\n"
 
-    return Response(generate(), mimetype='text/plain')
+    return Response(generate(), mimetype='application/x-ndjson')
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', debug=True, port=5000)
