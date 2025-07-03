@@ -1,0 +1,288 @@
+很好，现在我告诉你，每次产生的event的内容如下：
+{'type': 'key_complete', 'key': 'state'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'Think'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'Tool'}
+{'type': 'key_complete', 'key': 'content'}
+{'type': 'value_chunk', 'key': 'content', 'value': '{"ThinkTool":"ThinkPlan","ThinkInput":"用户询问我的能力，需要规划如何回答以介绍我的功能"}'}
+{'type': 'key_complete', 'key': 'state'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'ThinkOutput'}
+{'type': 'key_complete', 'key': 'content'}
+{'type': 'value_chunk', 'key': 'content', 'value': '"我的主要能力是与数据库交互。'}
+{'type': 'value_chunk', 'key': 'content', 'value': '我可以列出所有表、查找特定表、获取表结构以及执行SQL查询。我需要向用户清晰地解释这些功能。"'}
+{'type': 'key_complete', 'key': 'state'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'Thought'}
+{'type': 'key_complete', 'key': 'content'}
+{'type': 'value_chunk', 'key': 'content', 'value': '"好的，根据规划，我应该向用户介绍'}
+{'type': 'value_chunk', 'key': 'content', 'value': '我可以做的事情，这些都围绕着数据库操作。我会列出我可以执行的具体操作，并提及我可以回答他们关于数据库的问题。"'}
+{'type': 'key_complete', 'key': 'state'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'Action'}
+{'type': 'key_complete', 'key': 'content'}
+{'type': 'value_chunk', 'key': 'content', 'value': '"我将查询数据库中的所有表名。这是一个安全的操作。"'}
+{'type': 'key_complete', 'key': 'state'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'ActionInput'}
+{'type': 'key_complete', 'key': 'content'}
+{'type': 'value_chunk', 'key': 'content', 'value': '{"tool_name":"all_table_names","arguments":{}}'}
+{'type': 'tool_executed', 'tool_name': 'all_table_names', 'observation': 'orders, products, users'}
+{'type': 'key_complete', 'key': 'state'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'FinalAnswer'}
+{'type': 'key_complete', 'key': 'content'}
+{'type': 'value_chunk', 'key': 'content', 'value': '"数据库中包含以下表：orders, products, users。"'}
+{'type': 'key_complete', 'key': 'state'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'FinalAnswer'}
+{'type': 'key_complete', 'key': 'content'}
+{'type': 'value_chunk', 'key': 'content', 'value': '"你好！我是一个智能助手，我可以'}
+{'type': 'value_chunk', 'key': 'content', 'value': '帮助你与数据库进行交互。具体来说，我能够：\\n\\n1.  **列出所有表**：告诉你数据库中有哪些表。\\n2.  **查找特定表**：根据你提供的关键词查找相关的'}
+{'type': 'value_chunk', 'key': 'content', 'value': '表。\\n3.  **查询表结构**：查看任何表的详细结构，包括列名、数据类型等。\\n4.  **执行SQL查询**：根据你的需求执行SQL查询语句，并返回结果。\\'}
+{'type': 'value_chunk', 'key': 'content', 'value': 'n\\n你可以随时提出关于数据库的问题，我会尽力帮助你！比如，你可以问“数据库里有哪些表？”或者“请查询一下`users`表的结构”。"'}
+
+接下来我详细告诉你这些内容的意义：
+1.当收到{'type': 'key_complete', 'key': 'state'}时，代表接下来所有的value_chunk的value值拼接起来即为该key('state')的值，例如:
+{'type': 'key_complete', 'key': 'state'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'Think'}
+{'type': 'value_chunk', 'key': 'state', 'value': 'Tool'}
+意味着'state':'ThinkTool'
+
+2.当收到{'type': 'key_complete', 'key': 'content'}时，代表接下来所有的value_chunk的value值拼接起来即为该key('content')的值，例如:
+{'type': 'key_complete', 'key': 'content'}
+{'type': 'value_chunk', 'key': 'content', 'value': '"我的主要能力是与数据库交互。'}
+{'type': 'value_chunk', 'key': 'content', 'value': '我可以列出所有表、查找特定表、获取表结构以及执行SQL查询。我需要向用户清晰地解释这些功能。"'}
+意味着'content':'"我的主要能力是与数据库交互。我可以列出所有表、查找特定表、获取表结构以及执行SQL查询。我需要向用户清晰地解释这些功能。"'
+
+3.当收到type为tool_executed时，代表了工具的执行结果。可以直接输出其tool_name的值和工具的执行结果即observation的值。
+
+以下是我目前的前端代码：
+
+<template>
+  <div class="app">
+    <div class="main-content">
+      <div class="panel">
+        <div class="panel-header">AI回复</div>
+        <div class="messages">
+          <div v-for="(msg, i) in aiMessages" :key="i" class="message ai-msg" v-html="msg"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">用户输入</div>
+        <div class="messages">
+          <div v-for="(msg, i) in userMessages" :key="i" class="message user-msg">
+            {{ msg }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <input
+          v-model="currentInput"
+          @keyup.enter="sendMessage"
+          placeholder="请输入..."
+          :disabled="isLoading"
+      />
+      <button @click="sendMessage" :disabled="!currentInput.trim() || isLoading">
+        {{ isLoading ? '生成中...' : '发送' }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { marked } from 'marked'; // 导入 marked 用于 Markdown 渲染
+
+const currentInput = ref('') // 用户当前输入
+const userMessages = ref([]) // 存储用户消息的数组
+const aiMessages = ref([]) // 存储 AI 消息的数组
+const isLoading = ref(false) // 控制加载状态
+const sessionId = ref(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`) // 会话 ID
+
+// 用于追踪当前正在接收内容的 AI 消息索引
+let currentAiMessageIndex = -1;
+// 用于追踪当前正在接收的 key 类型 (e.g., 'state', 'content')
+let currentKeyType = '';
+
+// 发送消息函数
+const sendMessage = async () => {
+  try {
+  } catch (error) {
+    console.error('Chat failed:', error);
+    // 如果发生错误，更新当前 AI 消息为错误提示
+    aiMessages.value[currentAiMessageIndex] = '抱歉，发生了错误，请稍后重试。';
+  } finally {
+    isLoading.value = false; // 无论成功或失败，都设置加载状态为 false
+  }
+};
+
+onMounted(() => {
+  console.log('Session ID:', sessionId.value);
+});
+</script>
+
+<style scoped>
+/* Reset some default styles */
+:global(body, html) {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f5f5f5;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  overflow: hidden;
+}
+
+.panel:first-child {
+  border-right: 1px solid #ddd;
+}
+
+.panel-header {
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+  color: #333;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.message {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.ai-msg {
+  background: #f7f7f7;
+  border: 1px solid #e5e5e5;
+  color: #333;
+}
+
+/* Styles for rendered markdown content inside ai-msg */
+.ai-msg :deep(p) {
+  margin: 0 0 8px 0;
+}
+.ai-msg :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.ai-msg :deep(strong) {
+  color: #6a1b9a;
+}
+.ai-msg :deep(pre) {
+  background-color: #eef1f3;
+  padding: 12px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.ai-msg :deep(code) {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #eef1f3;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.ai-msg :deep(pre code) {
+  padding: 0;
+  background-color: transparent;
+}
+
+
+.user-msg {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.input-area {
+  border-top: 1px solid #ddd;
+  background: white;
+  padding: 16px 20px;
+  display: flex;
+  gap: 12px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.input-area input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+  outline: none;
+}
+
+.input-area input:focus {
+  border-color: #1565c0;
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.2);
+}
+
+.input-area button {
+  padding: 10px 24px;
+  background: #1565c0;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.input-area button:hover:not(:disabled) {
+  background: #0d47a1;
+}
+
+.input-area button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* 优化滚动条 */
+.messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 3px;
+}
+
+</style>
+
+
+现在我希望用你提到的sse来流式地展示后端返回的消息
