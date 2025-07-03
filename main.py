@@ -24,6 +24,7 @@ async def chat():
 
     async def generate():
         async for event in agent.handle_request(session_id, message):
+            print(event)
             yield f"{json.dumps(event, ensure_ascii=False)}\n"
 
     return Response(generate(), mimetype='application/x-ndjson')

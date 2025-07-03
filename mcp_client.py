@@ -14,7 +14,6 @@ class MCPClient:
         self.tools = []
 
     async def connect(self, server_url: str):
-        print(f"🔗 正在连接到服务器: {server_url}")
         try:
             # --- 关键修改：解包返回的读写流 ---
             read_stream, write_stream, _ = await self.exit_stack.enter_async_context(
@@ -28,7 +27,6 @@ class MCPClient:
 
             # 初始化协议握手
             await self.session.initialize()
-            print("✅ 服务器连接成功，会话已建立！")
 
         except Exception as e:
             print(f"❌ 连接失败: {e}")
@@ -37,10 +35,8 @@ class MCPClient:
 
     async def disconnect(self):
         if self.session:
-            print("🔌 正在断开连接...")
             await self.exit_stack.aclose()
             self.session = None
-            print("🔌 连接已断开。")
 
     async def list_tools(self) -> List[Tool]:
         if not self.session:
@@ -60,8 +56,6 @@ class MCPClient:
         print(f"   参数:\n  {arguments}")
         try:
             response = await self.session.call_tool(tool_name, arguments)
-            print(f"✅ 工具调用成功!")
-            print(f"   调用结果:\n  {response.content[0].text}   \n -----------------\n")
             return response.content[0].text
         except Exception as e:
             print(f"❌ 工具调用失败:\n {e}  \n -----------------\n")
