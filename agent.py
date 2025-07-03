@@ -51,16 +51,9 @@ class MCPAgent:
 
         for event_type, key, value in Util.parse_json_stream_by_chunks(Util.parse_llm_stream(response)):
             if event_type == "key_complete":
-                yield {
-                    "type": "key_complete",
-                    "key": key
-                }
+                yield dict(type="key_complete", key=key)
             elif event_type == "value_chunk":
-                yield {
-                    "type": "value_chunk",
-                    "key": key,
-                    "value": value
-                }
+                yield dict(type="value_chunk", key=key, value=value)
             elif event_type == "value_complete":
                 if key == "state":
                     last_state = value
@@ -68,12 +61,7 @@ class MCPAgent:
                     last_content = value
                     prompt += f"\n{{\"state\": {last_state}, \"content\":{last_content}}}"
                     self.session_map[sessionId] = prompt
-
-                yield {
-                    "type": "value_complete",
-                    "key": key,
-                    "value": value
-                }
+                yield dict(type="value_complete", key=key, value=value)
 
     # ===== 处理单次请求的函数 =====
     async def handle_request(self, session_id: str, user_input: Optional[str] = None, client=None) -> Generator[
@@ -147,21 +135,21 @@ class MCPAgent:
                     }
                     break
 
-# 简化的运行方式
-async def main():
-    agent = MCPAgent()
-    try:
-        await agent.init_connection()
-        # 使用 async for 迭代异步生成器
-        async for event in agent.handle_request("1214212412", "你好，你能为我做什么"):
-            # print(event)
-            pass
-
-    finally:
-        # 确保在程序结束前断开连接
-        if agent.mcp_client and agent.mcp_client.session:
-            await agent.mcp_client.disconnect()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# # 简化的运行方式
+# async def main():
+#     agent = MCPAgent()
+#     try:
+#         await agent.init_connection()
+#         # 使用 async for 迭代异步生成器
+#         async for event in agent.handle_request("1214212412", "你好，你能为我做什么"):
+#             print(event)
+#
+#
+#     finally:
+#         # 确保在程序结束前断开连接
+#         if agent.mcp_client and agent.mcp_client.session:
+#             await agent.mcp_client.disconnect()
+#
+#
+# if __name__ == "__main__":
+#     asyncio.run(main())
