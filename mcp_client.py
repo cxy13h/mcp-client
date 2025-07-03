@@ -51,9 +51,6 @@ class MCPClient:
         if not self.session:
             print("❌ 尚未连接到服务器。")
             return None
-
-        print(f"\n🔧 正在调用工具 '{tool_name}'...")
-        print(f"   参数:\n  {arguments}")
         try:
             response = await self.session.call_tool(tool_name, arguments)
             return response.content[0].text

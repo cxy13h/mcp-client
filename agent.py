@@ -49,7 +49,7 @@ class MCPAgent:
         last_state = None
         last_content = None
 
-        for event_type, key, content in Util.parse_json_stream_by_chunks(Util.parse_llm_stream(response)):
+        for event_type, key, value in Util.parse_json_stream_by_chunks(Util.parse_llm_stream(response)):
             if event_type == "key_complete":
                 yield {
                     "type": "key_complete",
@@ -59,20 +59,20 @@ class MCPAgent:
                 yield {
                     "type": "value_chunk",
                     "key": key,
-                    "content": content
+                    "value": value
                 }
             elif event_type == "value_complete":
                 if key == "state":
-                    last_state = content
+                    last_state = value
                 elif key == "content":
-                    last_content = content
+                    last_content = value
                     prompt += f"\n{{\"state\": {last_state}, \"content\":{last_content}}}"
                     self.session_map[sessionId] = prompt
 
                 yield {
                     "type": "value_complete",
                     "key": key,
-                    "content": content
+                    "value": value
                 }
 
     # ===== 处理单次请求的函数 =====
@@ -94,7 +94,7 @@ class MCPAgent:
 
         # 如果有用户输入，追加到prompt
         if user_input is not None:
-            prompt += f'\n{{"state": "User Input", "content":"{user_input}"}}'
+            prompt += f'\n{{"state": UserInput, "content":\"{user_input}\"}}'
         self.session_map[session_id] = prompt
         # 循环执行invoke，直到需要用户输入或对话结束
         while True:
@@ -105,23 +105,22 @@ class MCPAgent:
             for event in self.invoke_stream(session_id, self.session_map[session_id]):
                 if event["type"] == "value_complete":
                     if event["key"] == "state":
-                        last_state = event["content"]
+                        last_state = event["value"]
                     if event["key"] == "content":
-                        last_content = event["content"]
+                        last_content = event["value"]
                 else:
                     yield event
-
             # 检查是否需要结束循环
-            if last_state == '"Final Answer"':
+            if last_state == "FinalAnswer":
                 # 对话完成，结束循环
                 break
 
-            if last_state == '"User Interaction Needed"':
+            if last_state == "UserInteractionNeeded":
                 # 需要用户输入，结束循环，等待下一次请求
                 break
 
             # 如果是Action Input，执行工具后继续循环
-            if last_state == '"Action Input"':
+            if last_state == "ActionInput":
                 try:
                     last_content_json = json.loads(last_content)
                     tool_name = last_content_json["tool_name"]
@@ -131,7 +130,8 @@ class MCPAgent:
                     if self.mcp_client:
                         last_content_json = json.loads(last_content)
                         observation = await self.mcp_client.call_tool(last_content_json["tool_name"],last_content_json["arguments"])
-                        prompt += f"\n{{\"state\": \"Observation\", \"content\":{observation}}}"
+                        prompt = self.get_session_prompt(session_id)
+                        prompt += f"\n{{\"state\": Observation, \"content\":\"{observation}\"}}"
                         self.session_map[session_id] = prompt
 
                         yield {
@@ -147,19 +147,21 @@ class MCPAgent:
                     }
                     break
 
-# # 简化的运行方式
-# async def main():
-#     agent = MCPAgent()
-#     try:
-#         await agent.init_connection()
-#         # 使用 async for 迭代异步生成器
-#         async for event in agent.handle_request("11111", "帮助我查询下数据库吧"):
-#             print(event)
-#     finally:
-#         # 确保在程序结束前断开连接
-#         if agent.mcp_client and agent.mcp_client.session:
-#             await agent.mcp_client.disconnect()
-#
-#
-# if __name__ == "__main__":
-#     asyncio.run(main())
+# 简化的运行方式
+async def main():
+    agent = MCPAgent()
+    try:
+        await agent.init_connection()
+        # 使用 async for 迭代异步生成器
+        async for event in agent.handle_request("1214212412", "你好，你能为我做什么"):
+            # print(event)
+            pass
+
+    finally:
+        # 确保在程序结束前断开连接
+        if agent.mcp_client and agent.mcp_client.session:
+            await agent.mcp_client.disconnect()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

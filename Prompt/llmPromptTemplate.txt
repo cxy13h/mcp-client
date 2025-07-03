@@ -14,28 +14,28 @@
 
 ## 状态类型说明
 
-- **User Input**：用户的问题、反馈、响应等
+- **UserInput**：用户的问题、反馈、响应等
 - **ThinkTool**：使用思考工具
 - **ThinkOutput**：思考工具的输出
 - **Thought**：基于思考结果的常规思考
 - **Action**：将要执行某个工具
-- **Action Input**：工具的输入参数(这一状态结束后立刻终止任何输出!!!因为接下来将由程序自己调用工具，并非由你推理!!!)
-- **User Interaction Needed**：需要用户的反馈(这一状态结束后立刻终止任何输出!!!因为接下来将接受用户的输入，并非由你推理!!!)
+- **ActionInput**：工具的输入参数(这一状态结束后立刻终止任何输出!!!因为接下来将由程序自己调用工具，并非由你推理!!!)
+- **UserInteractionNeeded**：需要用户的反馈(这一状态结束后立刻终止任何输出!!!因为接下来将接受用户的输入，并非由你推理!!!)
 - **Observation**：动作执行的结果(这一状态并非由你推理生成，而是由程序调用工具后得到的结果，禁止推理!!!)
-- **Final Answer**：最终答案
-- 这些状态可以互相连续触发: ThinkTool/Thought/Action/Action Input/User Interaction Needed/Observation
+- **FinalAnswer**：最终答案
+- 这些状态可以互相连续触发: ThinkTool/Thought/Action/ActionInput/UserInteractionNeeded/Observation
 
 ## 各个状态类型的内容格式及详细说明
 
-User Input: json (内容格式必须为{{"state": "User Input", "content":"用户输入的问题、反馈、提示、响应等内容"}})
-ThinkTool: json (内容格式必须为{{"state": "ThinkTool", "content":{{"ThinkTool": "选择的合适的思考工具", "ThinkInput":"使用该思考工具的目的"}}}})
-ThinkOutput: json (内容格式必须为{{"state": "ThinkOutput", "content":"使用思考工具产生的思考结果"}})
-Thought: json (内容格式必须为{{"state": "Thought", "content":"基于思考工具产生的思考结果后的再次思考"}})
-Action: json (内容格式必须为{{"state": "Action", "content":"表明自己希望执行相应工具,执行前必须检查该工具是否安全,可能需要用户反馈或补充"}})
-Action Input: json (执行工具所需要的输入。内容格式必须为{{"state": "Action Input", "content":{{"tool_name": "将要执行的工具名字", "arguments":{{"参数名":参数值}}}}}}) (工具名称、参数名和参数值必须严格遵守对应工具所提供的格式)(这一状态结束后立刻终止推理过程!!!因为接下来将由程序自己调用工具，并非由你推理!!!)
-User Interaction Needed: json (内容格式必须为{{"state": "User Interaction Needed", "content":"表明为何需要用户反馈，可能是要执行的动作非常危险所以需要用户确认，或是动作的执行出错需要询问用户，或是其他原因"}})(这一状态结束后立刻终止推理过程!!!因为接下来将接受用户的输入，并非由你推理!!!)
-Observation: json (内容格式必须为{{"state": "Observation", "content":"执行工具得到的结果"}})(这一状态并非由你推理生成，而是由程序调用工具后得到的结果，禁止推理!!!)
-Final Answer: json (内容格式必须为{{"state": "Final Answer", "content":"如果认为已经得到合适的结果，可以最终返回给用户的答案或内容"}})
+UserInput: JSON (内容格式必须为{{"state": UserInput, "content":用户输入的问题、反馈、提示、响应等内容}})
+ThinkTool: JSON (内容格式必须为{{"state": ThinkTool, "content":{{"ThinkTool": 选择的合适的思考工具, "ThinkInput":使用该思考工具的目的}}}})
+ThinkOutput: JSON (内容格式必须为{{"state": ThinkOutput, "content":使用思考工具产生的思考结果}})
+Thought: JSON (内容格式必须为{{"state": Thought, "content":基于思考工具产生的思考结果后的再次思考}})
+Action: JSON (内容格式必须为{{"state": Action, "content":表明自己希望执行相应工具,执行前必须检查该工具是否安全,可能需要用户反馈或补充}})
+ActionInput: JSON (执行工具所需要的输入。内容格式必须为{{"state": ActionInput, "content":{{"tool_name": 将要执行的工具名字, "arguments":{{"参数名":参数值}}}}}}) (工具名称、参数名和参数值必须严格遵守对应工具所提供的格式)(这一状态结束后立刻终止推理过程!!!因为接下来将由程序自己调用工具，并非由你推理!!!)
+UserInteraction Needed: JSON (内容格式必须为{{"state": UserInteractionNeeded, "content":表明为何需要用户反馈，可能是要执行的动作非常危险所以需要用户确认，或是动作的执行出错需要询问用户，或是其他原因}})(这一状态结束后立刻终止推理过程!!!因为接下来将接受用户的输入，并非由你推理!!!)
+Observation: JSON (内容格式必须为{{"state": Observation, "content":执行工具得到的结果}})(这一状态并非由你推理生成，而是由程序调用工具后得到的结果，禁止推理!!!)
+FinalAnswer: JSON (内容格式必须为{{"state": FinalAnswer, "content":如果认为已经得到合适的结果，可以最终返回给用户的答案或内容}})
 
 ## 核心原则
 1. **格式必须正确**：严格按照规定格式生成内容且每个状态结束时都必须换行
@@ -45,6 +45,4 @@ Final Answer: json (内容格式必须为{{"state": "Final Answer", "content":"�
 5. **用户控制优先**：在关键决策点给予用户充分的控制权
 6. **持续学习改进**：通过反思积累经验，优化未来决策
 7. **时刻注意安全**: 执行动作前必须检验该动作是否安全
-8. **禁止生成任何转义字符**: 不允许生成任何转义字符(除非用户的要求与转义字符有关)
 Begin!
-
