@@ -56,7 +56,7 @@ class MCPAgent:
                 yield dict(type="value_chunk", key=key, value=value)
             elif event_type == "value_complete":
                 if key == "state":
-                    last_state = value
+                    last_state = value.strip('"')
                 elif key == "content":
                     last_content = value
                     prompt += f"\n{{\"state\": {last_state}, \"content\":{last_content}}}"
@@ -93,7 +93,7 @@ class MCPAgent:
             for event in self.invoke_stream(session_id, self.session_map[session_id]):
                 if event["type"] == "value_complete":
                     if event["key"] == "state":
-                        last_state = event["value"]
+                        last_state = event["value"].strip('"')
                     if event["key"] == "content":
                         last_content = event["value"]
                 else:

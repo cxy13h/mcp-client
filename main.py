@@ -37,15 +37,24 @@ async def chat():
     return Response(event_gen(),
                     content_type="text/event-stream",
                     headers={"Cache-Control": "no-cache"})
-    # data = await request.get_json()
-    # message = data.get('message', '')
-    # session_id = data.get('session_id', '11111')
-    #
-    # async def generate():
-    #     async for event in agent.handle_request(session_id, message):
-    #         yield f"{json.dumps(event, ensure_ascii=False)}\n\n"
-    #
-    # return Response(generate(), mimetype='application/x-ndjson')
+
+
+# @app.route('/prompts')
+# async def prompts():
+#     """
+#     该路由用于通过 SSE 推送数据到前端。
+#     """
+#     session_id = request.args.get('session_id')
+#     async def event_stream():
+#
+#
+#         while True:
+#             prompt = agent.get_session_prompt(session_id)
+#             yield f"data: {prompt}\n\n"
+#             await asyncio.sleep(10)  # 每秒推送一次全局变量，您可以根据需要调整
+#
+#     return Response(event_stream(), content_type='text/event-stream')
+
 
 
 if __name__ == '__main__':
