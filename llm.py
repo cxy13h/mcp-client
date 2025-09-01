@@ -12,7 +12,6 @@ class LLMClient:
     def __init__(self):
         self.api_key = os.getenv("LLM_API_KEY")
         self.base_url = os.getenv("LLM_BASE_URL")
-        self.user_agent = os.getenv("USER_AGENT")
         self.model = os.getenv("LLM_MODEL")
         self._client = None
     
@@ -22,8 +21,7 @@ class LLMClient:
         if self._client is None:
             self._client = OpenAI(
                 api_key=self.api_key,
-                base_url=self.base_url,
-                default_headers={"User-Agent": self.user_agent}
+                base_url=self.base_url
             )
         return self._client
     
